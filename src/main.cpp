@@ -14,44 +14,30 @@ int main(void) {
   std::vector grid(ROWS, std::vector<int>(COLS));
   std::vector pred_grid(ROWS, std::vector<int>(COLS));
   int rate = 1;
+  int game_state = 2; // 1 start 2 pause 0 stop
   SetTargetFPS(FPS);
-  take_grid_pos(grid, pred_grid);
+  // take_grid_pos(grid, pred_grid);
   double time = 0;
-  while (!WindowShouldClose()) {
+  while (!WindowShouldClose() && game_state) {
     BeginDrawing();
-    if (IsKeyPressed(KEY_S)) {
-      for (std::vector<int> &row : pred_grid) {
-        std::fill(row.begin(), row.end(), 0);
-      }
-      take_grid_pos(grid, pred_grid);
-    }
-    if (IsKeyPressed(QUIT)) {
-      EndDrawing();
-      break;
-    }
-    if (IsKeyPressed(KEY_DOWN)) {
-      rate--;
-      if (rate < 0) {
-        rate = 0;
-      }
-    }
-    if (IsKeyPressed(KEY_UP)) {
-      rate++;
-      if (rate > MAX_RATE) {
-        rate = MAX_RATE;
-      }
-    }
-    time += GetFrameTime();
-    if ((time * rate) >= 1) {
-      updMap(grid);
-      time = 0;
-    }
-    ClearBackground(BG_COLOR);
     render_grid(grid);
-
+    handle_all_inputs(grid, pred_grid, game_state, rate);
+    if (game_state == 1) {
+      time += GetFrameTime();
+      if ((time * rate) >= 1) {
+        updMap(grid);
+        time = 0;
+      }
+    } else if (game_state == 2) {
+      time += GetFrameTime();
+      if ((time * rate) >= 1) {
+        updMap(pred_grid);
+        time = 0;
+      }
+      render_pred_grid(pred_grid);
+    }
     EndDrawing();
   }
   CloseWindow();
-
   return 0;
 }

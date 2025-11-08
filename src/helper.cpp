@@ -2,10 +2,57 @@
 #include "variables.hpp"
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
 #include <vector>
 
 #ifndef HELPER
 #define HELPER
+void change_cell(std::vector<std::vector<int>> &grid, int state) {
+  /* A function to take grid position using mouse positon and change it to the
+   * desired state */
+  Vector2 location = GetMousePosition();
+  int x = (location.x) / (CELL_SIZE + MARGIN);
+  int y = (location.y) / (CELL_SIZE + MARGIN);
+  if (x >= 0 && x < grid[0].size() && y >= 0 && y < grid.size()) {
+    grid[x][y] = state;
+  }
+}
+void handle_all_inputs(std::vector<std::vector<int>> &grid,
+                       std::vector<std::vector<int>> &pred_grid,
+                       int &game_state, int &rate) {
+  if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_F)) {
+    game_state = 1;
+  }
+  if (IsKeyPressed(KEY_P)) {
+    game_state = 2;
+  }
+  if (IsKeyPressed(QUIT)) {
+    game_state = 0;
+  }
+  if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && game_state == 2) {
+    pred_grid = grid;
+    change_cell(grid, 1);
+    change_cell(pred_grid, 1);
+  }
+  if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) && game_state == 2) {
+    pred_grid = grid;
+    change_cell(grid, 0);
+    change_cell(pred_grid, 0);
+  }
+  if (IsKeyPressed(KEY_DOWN)) {
+    rate--;
+    if (rate < 0) {
+      rate = 0;
+    }
+  }
+  if (IsKeyPressed(KEY_UP)) {
+    rate++;
+    if (rate > MAX_RATE) {
+      rate = MAX_RATE;
+    }
+  }
+}
+
 void updMap(std::vector<std::vector<int>> &grid) {
   int rows = grid.size();
   int cols = grid[0].size();
@@ -38,14 +85,14 @@ void updMap(std::vector<std::vector<int>> &grid) {
       else if (grid[i][j] == 1 && n > 3) {
         killed.push_back({i, j});
         // std::cout << "Killed ";
-      } else if (grid[i][j] == 0 && n == 3)
+      } else if (grid[i][j] != 1 && n == 3)
         alive.push_back({i, j});
     }
   }
   for (int i = 0; i < killed.size(); i++) {
     int x = killed[i][0];
     int y = killed[i][1];
-    grid[x][y] = 0;
+    grid[x][y] = 2;
   }
   for (int i = 0; i < alive.size(); i++) {
     int x = alive[i][0];
@@ -65,6 +112,7 @@ void spawnX(std::vector<std::vector<int>> &grid, int x) {
   }
 }
 void render_grid(std::vector<std::vector<int>> &grid) {
+  // BeginDrawing();
   // ClearBackground(BG_COLOR);
   Rectangle square = GetShapesTextureRectangle();
   square.height = square.width = CELL_SIZE;
@@ -72,55 +120,62 @@ void render_grid(std::vector<std::vector<int>> &grid) {
     for (int j = 0; j < COLS; j++) {
       square.x = i * (CELL_SIZE) + (i + 1) * MARGIN;
       square.y = j * (CELL_SIZE) + (j + 1) * MARGIN;
-      if (grid[i][j]) {
+      if (grid[i][j] == 1) {
         DrawRectangleRounded(square, ROUNDED, CELL_SIZE, LIVING);
-      } else {
+      } else if (grid[i][j] == 0 || grid[i][j] == 2) {
         DrawRectangleRounded(square, ROUNDED, CELL_SIZE, DEAD);
       }
     }
   }
+  // EndDrawing();
+}
+void render_pred_grid(std::vector<std::vector<int>> &grid) {
+  // BeginDrawing();
+  // ClearBackground(BG_COLOR);
+  Rectangle square = GetShapesTextureRectangle();
+  square.height = square.width = CELL_SIZE;
+  for (int i = 0; i < ROWS; i++) {
+    for (int j = 0; j < COLS; j++) {
+      square.x = i * (CELL_SIZE) + (i + 1) * MARGIN;
+      square.y = j * (CELL_SIZE) + (j + 1) * MARGIN;
+      if (grid[i][j] == 2) {
+        DrawRectangleRounded(square, ROUNDED, CELL_SIZE, PRED_DEADR);
+      } else if (grid[i][j] == 1) {
+        DrawRectangleRounded(square, ROUNDED, CELL_SIZE, PRED_LIVING);
+      } else {
+        DrawRectangleRounded(square, ROUNDED, CELL_SIZE, PRED_DEAD);
+      }
+    }
+  }
+  // EndDrawing();
+}
+
+void print_grid(std::vector<std::vector<int>> &grid) {
+  for (std::vector<int> &row : grid) {
+    // Fill the entire row (from its beginning to its end) with the value 0
+    // std::fill(row.begin(), row.end(), 0);
+    for (int &i : row) {
+      std::cout << i << " ";
+    }
+    std::cout << std::endl;
+  }
 }
 #endif
 
-#ifndef USER_INPUT
-#define USER_INPUT
+// #ifndef USER_INPUT
+// #define USER_INPUT
 
-void change_cell(std::vector<std::vector<int>> &grid, int state) {
-  Vector2 location = GetMousePosition();
-  int x = (location.x) / (CELL_SIZE + MARGIN);
-  int y = (location.y) / (CELL_SIZE + MARGIN);
-  if (x >= 0 && x < grid[0].size() && y >= 0 && y < grid.size()) {
-    grid[x][y] = state;
-  }
-}
+// void take_grid_pos(std::vector<std::vector<int>> &grid,
+//                    std::vector<std::vector<int>> &pred_grid) {
+//   /* A function to take handles mouse input and cell state  */
+//   SetTargetFPS(INPUT_FPS);
+//   while (!WindowShouldClose()) {
 
-void take_grid_pos(std::vector<std::vector<int>> &grid,
-                   std::vector<std::vector<int>> &pred_grid) {
-  SetTargetFPS(INPUT_FPS);
-  while (!WindowShouldClose()) {
-    BeginDrawing();
-    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_F)) {
-      break;
-    }
-    if (IsKeyPressed(QUIT)) {
-      EndDrawing();
-      CloseWindow();
-      exit(0);
-    }
-    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-      change_cell(grid, 1);
-      change_cell(pred_grid, 1);
-    }
-    if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-      change_cell(grid, 0);
-      change_cell(pred_grid, 0);
-    }
-    ClearBackground(BG_COLOR);
-    render_grid(grid);
-    render_grid(pred_grid);
-    updMap(pred_grid);
-    EndDrawing();
-  }
-  SetTargetFPS(FPS);
-}
-#endif
+//     pred_grid = grid;
+//     // render_grid(grid);
+//     render_grid(pred_grid);
+//     // EndDrawing();
+//   }
+//   SetTargetFPS(FPS);
+// }
+// #endif
