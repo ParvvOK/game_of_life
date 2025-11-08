@@ -21,8 +21,7 @@ int main(void) {
   int game_state = 2; // 1 start 2 pause 0 stop
   SetTargetFPS(FPS);
   // take_grid_pos(grid, pred_grid);
-  auto bloom = LoadShader(
-      0, TextFormat("resources/shaders/glsl%i/bloom.fs", GLSL_VERSION));
+  auto bloom = LoadShader(0, TextFormat("./resources/bloom.fs", GLSL_VERSION));
   RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
   double time = 0;
   while (!WindowShouldClose() && game_state) {
