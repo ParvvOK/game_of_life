@@ -6,7 +6,11 @@
 #include <ctime>
 #include <iostream>
 #include <vector>
-
+#if defined(PLATFORM_DESKTOP)
+#define GLSL_VERSION 330
+#else // PLATFORM_ANDROID, PLATFORM_WEB
+#define GLSL_VERSION 100
+#endif
 int main(void) {
   const int screenWidth = COLS * (CELL_SIZE) + (COLS + 1) * MARGIN;
   const int screenHeight = ROWS * (CELL_SIZE) + (ROWS + 1) * MARGIN;
@@ -17,6 +21,9 @@ int main(void) {
   int game_state = 2; // 1 start 2 pause 0 stop
   SetTargetFPS(FPS);
   // take_grid_pos(grid, pred_grid);
+  auto bloom = LoadShader(
+      0, TextFormat("resources/shaders/glsl%i/bloom.fs", GLSL_VERSION));
+  RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
   double time = 0;
   while (!WindowShouldClose() && game_state) {
     BeginDrawing();
@@ -36,6 +43,12 @@ int main(void) {
       }
       render_pred_grid(pred_grid);
     }
+    BeginShaderMode(bloom);
+    DrawTextureRec(target.texture,
+                   (Rectangle){0, 0, (float)target.texture.width,
+                               (float)-target.texture.height},
+                   (Vector2){0, 0}, WHITE);
+    EndShaderMode();
     EndDrawing();
   }
   CloseWindow();
