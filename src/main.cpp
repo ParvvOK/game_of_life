@@ -1,3 +1,4 @@
+#include "camera.cpp"
 #include "helper.cpp"
 #include "raylib.h"
 #include "variables.hpp"
@@ -6,12 +7,17 @@
 enum class GameState { Idle, Running, Paused };
 
 int main(void) {
-  const int screenWidth = COLS * CELL_SIZE + (COLS + 1) * MARGIN;
-  const int screenHeight = ROWS * CELL_SIZE + (ROWS + 1) * MARGIN;
+  const int screenWidth = COLS * (CELL_SIZE) + (COLS + 1) * MARGIN;
+  const int screenHeight = ROWS * (CELL_SIZE) + (ROWS + 1) * MARGIN;
+
   InitWindow(screenWidth, screenHeight, "Game of Life");
 
   std::vector grid(ROWS, std::vector<int>(COLS));
-  take_grid_pos(grid);
+
+  Camera2D camera;
+  init_camera(camera, screenWidth, screenHeight);
+
+  take_grid_pos(grid, camera, screenWidth, screenHeight);
 
   int rate = 5;
   double time = 0;
@@ -22,19 +28,20 @@ int main(void) {
   while (!WindowShouldClose()) {
     BeginDrawing();
 
+    update_camera(camera, screenWidth, screenHeight);
+
     if (IsKeyPressed(KEY_S)) {
-      take_grid_pos(grid);
+      take_grid_pos(grid, camera, screenWidth, screenHeight);
       state = GameState::Idle;
     }
 
     if (IsKeyPressed(KEY_SPACE)) {
-      if (state == GameState::Idle) {
+      if (state == GameState::Idle)
         state = GameState::Running;
-      } else if (state == GameState::Running) {
+      else if (state == GameState::Running)
         state = GameState::Paused;
-      } else if (state == GameState::Paused) {
+      else if (state == GameState::Paused)
         state = GameState::Running;
-      }
     }
 
     if (IsKeyPressed(KEY_R)) {
@@ -43,20 +50,12 @@ int main(void) {
       state = GameState::Idle;
     }
 
-    if (IsKeyPressed(QUIT)) {
-      EndDrawing();
-      break;
-    }
-
-    if (IsKeyPressed(KEY_DOWN)) {
+    if (IsKeyPressed(KEY_DOWN))
       rate = std::max(0, rate - 1);
-    }
-    if (IsKeyPressed(KEY_UP)) {
+    if (IsKeyPressed(KEY_UP))
       rate = std::min(MAX_RATE, rate + 1);
-    }
-    if (IsKeyPressed(KEY_ENTER)) {
+    if (IsKeyPressed(KEY_ENTER))
       spawnX(grid, RAND);
-    }
 
     time += GetFrameTime();
     if (state == GameState::Running && (time * rate) >= 1) {
@@ -64,7 +63,12 @@ int main(void) {
       time = 0;
     }
 
+    ClearBackground(BLACK);
+
+    BeginMode2D(camera);
     render_grid(grid);
+    EndMode2D();
+
     UpdateHelpDialog();
     EndDrawing();
   }
