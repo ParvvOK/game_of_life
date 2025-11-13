@@ -6,11 +6,12 @@
 #include "rendering.cpp"
 #include <thread>
 #include <vector>
+#include "camera.cpp"
 
 #ifndef HELPER
 #define HELPER
 bool editing = false;
-
+bool prediction = false;
 void updMap(std::vector<std::vector<int>> &grid) {
         int rows = grid.size();
         int cols = grid[0].size();
@@ -100,11 +101,13 @@ bool is_in(Vector2& current, Vector2& target, Vector2 source){
                 ((current.y <= std::max(target.y, source.y) && 
                 current.y >= std::min(target.y, source.y)));
 }
-void get_cursor_pos(std::vector<std::vector<int>> &grid, int state) {
+void get_cursor_pos(std::vector<std::vector<int>> &grid, int state,Camera2D& camera) {
         /* A function to take grid position using mouse positon and change it to the
    * desired state */
-        Vector2 now = GetMousePosition();
+        Vector2 now = GetScreenToWorld2D(GetMousePosition(), camera);
         Vector2 delta = GetMouseDelta();
+        delta.x /= camera.zoom;
+        delta.y /= camera.zoom;
         Vector2 prev = now;
         prev.x -= delta.x;
         prev.y -= delta.y;
@@ -138,38 +141,51 @@ void get_cursor_pos(std::vector<std::vector<int>> &grid, int state) {
 struct grids{
 std::vector<std::vector<int>>& grid;
 std::vector<std::vector<int>>& pred_grid;
+Camera2D& camera;
 };
 void handle_cursor(grids grids){
         while(editing){
-                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                        get_cursor_pos(grids.grid, 1);
+                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !IsKeyDown(KEY_LEFT_SHIFT) && !IsKeyDown(KEY_RIGHT_SHIFT)) {
+                        get_cursor_pos(grids.grid, 1,grids.camera);
                         grids.pred_grid = grids.grid;
                 }
-                if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-                        get_cursor_pos(grids.grid, 0);
+                if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) && !IsKeyDown(KEY_LEFT_SHIFT) && !IsKeyDown(KEY_RIGHT_SHIFT)) {
+                        get_cursor_pos(grids.grid, 0,grids.camera);
                         grids.pred_grid = grids.grid;
                 }
         }
 }
-void edit_mode(std::vector<std::vector<int>>& grid){
+void edit_mode(std::vector<std::vector<int>>& grid,Camera2D& camera){
         SetTargetFPS(INPUT_FPS);
         editing = true;
         std::vector<std::vector<int>> pred_grid = grid;
-        grids grids{grid,pred_grid};
+        grids grids{grid,pred_grid,camera};
         std::thread cursor_thread(handle_cursor, grids);
         while(!WindowShouldClose()){
+                update_camera(camera);
                 if(IsKeyPressed(QUIT)){
                         quit();
                 }
                 if(reset_random(grid)){
                         pred_grid = grid;
                 }
-                updMap(pred_grid);
+                if(prediction){
+                        updMap(pred_grid);
+                }
                 if(IsKeyPressed(KEY_D)){
                         editing = false;
                         break;
                 }
-                render_pred_grid(grid,pred_grid);
+                if(IsKeyPressed(KEY_T)){
+                        prediction = !prediction;
+                        pred_grid = grid;
+                }
+                if(prediction){
+                        render_pred_grid(grid,pred_grid,camera);
+                }
+                else{
+                        render_grid(grid, camera);
+                }
         }
         editing = false;
         SetTargetFPS(FPS);
@@ -177,9 +193,9 @@ void edit_mode(std::vector<std::vector<int>>& grid){
 }
 
 void handle_run_inputs(std::vector<std::vector<int>> &grid,
-                       bool& running,int& rate) {
+                       bool& running,int& rate,Camera2D camera) {
         if(IsKeyPressed(KEY_E)){
-                edit_mode(grid);
+                edit_mode(grid,camera);
         }
         if (IsKeyPressed(KEY_SPACE)) {
                 running = !running;
@@ -201,5 +217,4 @@ void handle_run_inputs(std::vector<std::vector<int>> &grid,
                 }
         }
 }
-
 #endif
